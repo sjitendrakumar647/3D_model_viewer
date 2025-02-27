@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Viewer</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Scene, Camera, and Renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.TextureLoader().load('mountain.jpg'); // Add background image
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("canvas"), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+        directionalLight.position.set(1, 1, 2);
+        scene.add(directionalLight);
+
+        let model, mixer;
+
+        // Load the GLB model
+        const loader = new THREE.GLTFLoader();
+        loader.load('phoenix_bird.glb', function (gltf) {
+            model = gltf.scene;
+            scene.add(model);
+
+            // Scale and position model
+            model.scale.set(0.5, 0.5, 0.5);
+            model.position.set(-300, 200, 0); // Start from the left
+
+            // Set camera position
+            camera.position.set(-150, 0, 200);
+            camera.lookAt(model.position);
+
+            // Play animation if available
+            mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach((clip) => {
+                mixer.clipAction(clip).play();
+            });
+
+            // Animation loop
+            const clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate);
+                mixer.update(clock.getDelta());
+
+                // Move model left to right
+                model.position.x += 1; // Adjust speed
+
+                // If the model goes off-screen, reset position
+                if (model.position.x > 300) {
+                    model.position.x = -1000; // Reappear from the left
+                }
+
+                renderer.render(scene, camera);
+            }
+            animate();
+        });
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+
+</body>
+</html>
